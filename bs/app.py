@@ -1,9 +1,13 @@
-from flask import Flask
-app = Flask(__name__)
+"""Run the porgram."""
+# from flask import Flask
+import os
+from views import app
+# from .models import User
 
-@app.route('/')
-def root_route():
-    return 'this is the root route'
+# app = Flask(__name__)
 
 if __name__ == '__main__':
+    if os.environ.get('BS_DEBUG'):
+        app.debug = True
+        print("Hit debug block.")
     app.run()

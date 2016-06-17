@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<head>
+  <title>Base layout</title>
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="page">
+    <h1>My Blogging Site</h1>
+    <nav class="metanav">
+      {% if session.username %}
+        <p>Logged in as {{ session.username }}</p>
+      {% endif %}
+      <a href="{{ url_for('index') }}">Home</a>
+      {% if not session.username %}
+        <a href="{{ url_for('register') }}">Register</a>
+        <a href="{{ url_for('login') }}">Login</a>
+      {% else %}
+        <a href="{{ url_for('profile', username=session.username) }}">Profile</a>
+        <a href="{{ url_for('logout') }}">Logout</a>
+      {% endif %}
+    </nav>
+    {% for message in get_flashed_messages() %}
+      <div class="flash">{{ message }}</div>
+    {% endfor %}
+  </header>
+  {% block body %}{% endblock %}
+</body>

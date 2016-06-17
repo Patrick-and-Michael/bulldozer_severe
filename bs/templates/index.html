@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+{% block body %}
+
+<h2>Home</h2>
+    {% if session.username %}
+    <h3>Welcome, {{session.username}}!</h3>
+    <div class="notices">
+        You're logged in!  Congrats.
+    </div>
+    {% else %}
+    <div class="unauthorized">
+        Not logged in.  Please login to see something else.
+    </div>
+    {% endif %}
+
+{% endblock %}
