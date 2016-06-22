@@ -2,4 +2,10 @@
 {% block body %}
   <h2>{{session.username}}</h2>
   <h2>A PROFILE!  HUZZAH!</h2>
+  <p>Your groups:</p>
+  <ul>
+    {% for item in group_list %}
+        <li><a href="{{ url_for('usergroup_pofile', groupname=item.groupname) }}">{{item.groupname}}</a></li>
+    {% endfor %}
+  </ul>
 {% endblock %}
