@@ -1,7 +1,7 @@
 """Define Views."""
 from flask import Flask, request, session, redirect, url_for, render_template, flash
 import os
-from models import User
+from models import User, Usergroup
 
 app = Flask(__name__)
 
@@ -35,6 +35,33 @@ def register():
     return render_template('register.html')
 
 
+@app.route('/register/usergroup', methods=['GET', 'POST'])
+def new_group():
+    """Create a new usergroup."""
+    if session['logged_in']:
+        user = User(session['username'])
+    else:
+        flash('Please log in.')
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        groupname = request.form['groupname']
+        usergroup = Usergroup(groupname)
+
+        if usergroup.get():
+            flash('Groupnames must be unique.')
+            return redirect(url_for('new_group'))
+        else:
+            usergroup.register(user)
+            flash('You now own group {}!'.format(groupname))
+            return redirect(url_for('usergroup_profile'))
+
+    return render_template('register_usergroup.html')
+
+
+
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """Manage login route."""
@@ -48,6 +75,7 @@ def login():
             flash('Login failed.')
         else:
             session['username'] = username
+            session['logged_in'] = True
             flash('Logged in.')
             return redirect(url_for('index'))
     return render_template('login.html')
@@ -63,9 +91,21 @@ def profile():
         return render_template('profile.html')
 
 
+@app.route('/profile/usergroup', methods=['GET'])
+def usergroup_profile():
+    """Manage profile route."""
+    if not session.get('logged_in'):
+        flash('please login to see the usergroup profile.')
+        return redirect(url_for('login'))
+    else:
+        return render_template('usergroup-profile.html')
+
+
 @app.route('/logout', methods=['GET'])
 def logout():
     """Manage logout route."""
-    session.pop('logged_in', None)
+    session.clear()
+    #session.pop('logged_in', None)
+    #session.pop('username', None)
     flash('You are logged out.')
     return redirect(url_for('login'))
