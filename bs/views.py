@@ -88,17 +88,20 @@ def profile():
         flash('please login to see your profile.')
         return redirect(url_for('login'))
     else:
-        return render_template('profile.html')
+        user = User(session.username)
+        group_list = user.get_groups()
+        return render_template('profile.html', group_list=group_list)
 
 
-@app.route('/profile/usergroup', methods=['GET'])
-def usergroup_profile():
+@app.route('/profile/usergroup/<groupname>', methods=['GET'])
+def usergroup_profile(groupname):
     """Manage profile route."""
     if not session.get('logged_in'):
         flash('please login to see the usergroup profile.')
         return redirect(url_for('login'))
     else:
-        return render_template('usergroup-profile.html')
+        usergroup = Usergroup(groupname)
+        return render_template('usergroup-profile.html', usergroup=usergroup)
 
 
 @app.route('/logout', methods=['GET'])
