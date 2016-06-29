@@ -46,20 +46,22 @@ def new_group():
 
     if request.method == 'POST':
         groupname = request.form['groupname']
-        usergroup = Usergroup(groupname)
+        if not groupname:
+            flash('Please name your new group.')
+            return redirect(url_for('new_group'))
 
-        if usergroup.get():
-            flash('Groupnames must be unique.')
+        # check for existing group by this name
+        usergroup = Usergroup(groupname=groupname, session=session)
+
+        if usergroup.usergroup_node:
+            flash('You are already in usergroup {}'.format(groupname))
             return redirect(url_for('new_group'))
         else:
             usergroup.register(user)
             flash('You now own group {}!'.format(groupname))
-            return redirect(url_for('usergroup_profile'))
+            return redirect(url_for('usergroup_profile', id=usergroup.id))
 
     return render_template('register_usergroup.html')
-
-
-
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -75,33 +77,38 @@ def login():
             flash('Login failed.')
         else:
             session['username'] = username
+            id = User(username).get().id
+            session['id'] = id
             session['logged_in'] = True
             flash('Logged in.')
             return redirect(url_for('index'))
     return render_template('login.html')
 
 
-@app.route('/profile', methods=['GET'])
-def profile():
+@app.route('/profile/<username>', methods=['GET'])
+def profile(username):
     """Manage profile route."""
     if not session.get('logged_in'):
         flash('please login to see your profile.')
         return redirect(url_for('login'))
     else:
-        user = User(session.username)
+        user = User(username) if username else User(session['username'])
         group_list = user.get_groups()
-        return render_template('profile.html', group_list=group_list)
+        return render_template('profile.html',
+                               group_list=group_list,
+                               user=user)
 
 
-@app.route('/profile/usergroup/<groupname>', methods=['GET'])
-def usergroup_profile(groupname):
+@app.route('/profile/usergroup/<id>', methods=['GET'])
+def usergroup_profile(id):
     """Manage profile route."""
     if not session.get('logged_in'):
         flash('please login to see the usergroup profile.')
         return redirect(url_for('login'))
     else:
-        usergroup = Usergroup(groupname)
-        return render_template('usergroup-profile.html', usergroup=usergroup)
+        usergroup = Usergroup(id=id)
+        return render_template('usergroup-profile.html',
+                               usergroup=usergroup, )
 
 
 @app.route('/logout', methods=['GET'])
