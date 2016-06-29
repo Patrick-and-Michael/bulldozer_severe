@@ -101,7 +101,7 @@ def profile(username):
 
 @app.route('/profile/usergroup/<id>', methods=['GET'])
 def usergroup_profile(id):
-    """Manage profile route."""
+    """Manage usergroup route / usergroup detail view."""
     if not session.get('logged_in'):
         flash('please login to see the usergroup profile.')
         return redirect(url_for('login'))
