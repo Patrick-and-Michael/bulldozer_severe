@@ -1,11 +1,19 @@
 """Define Views."""
 from flask import Flask, request, session, redirect, url_for, render_template, flash
+# from flask.ext.principal import AnonymousIdentity, Identity, identity_changed, Permission, Principal, RoleNeed
 import os
 from models import User, Usergroup
+from security import user_match
 
 app = Flask(__name__)
 
 app.secret_key = os.environ.get('BS_SECRET_KEY')
+
+# principals = Principal(app)
+
+# owner_permission = Permission(RoleNeed('owner'))
+
+# login_manager = LoginManager(app)
 
 
 @app.route('/')
@@ -29,7 +37,10 @@ def register():
             flash('A user with that username already exists.')
         else:
             session['username'] = username
+            # identity_changed.send(app, identity=Identity(username))
             flash('Logged in.')
+            session['logged_in'] = True
+            session['id'] = User(username).get()['id']
             return redirect(url_for('index'))
 
     return render_template('register.html')
@@ -53,7 +64,7 @@ def new_group():
         # check for existing group by this name
         usergroup = Usergroup(groupname=groupname, session=session)
 
-        if usergroup.usergroup_node:
+        if usergroup.get():
             flash('You are already in usergroup {}'.format(groupname))
             return redirect(url_for('new_group'))
         else:
@@ -77,10 +88,11 @@ def login():
             flash('Login failed.')
         else:
             session['username'] = username
-            id = User(username).get().id
+            id = User(username).get()['id']
             session['id'] = id
             session['logged_in'] = True
             flash('Logged in.')
+            # identity_changed.send(app, identity=Identity(username))
             return redirect(url_for('index'))
     return render_template('login.html')
 
@@ -109,6 +121,21 @@ def usergroup_profile(id):
         usergroup = Usergroup(id=id)
         return render_template('usergroup-profile.html',
                                usergroup=usergroup, )
+
+
+@app.route('/profile/usergroup/<id>/usergroup_add_member/', methods=['POST'])
+@user_match(session, Usergroup, id, 'owner')
+def usergroup_add_member(id):
+    """Add a new user to a group."""
+    username = request.form['username']
+    new_user = User(username)
+    group = Usergroup(id)
+    if new_user.get():
+        group.add_member(new_user)
+        flash("{} is now a member of {}!".format(username, group.groupname))
+    else:
+        flash("No such user")
+    return redirect(url_for('usergroup_profile', id=id))
 
 
 @app.route('/logout', methods=['GET'])

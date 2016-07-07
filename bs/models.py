@@ -72,17 +72,17 @@ class Usergroup(object):
 
     def __init__(self, groupname=None, id=None, session=None):
         """Instantiate a user group object."""
+        self.id = id
         if id:
-            self.id = id
             self.usergroup_node = Usergroup.get_by_id(self.id)
-            self.groupname = self.usergroup_node.username
+            self.groupname = self.usergroup_node['username']
         elif groupname and session:
-            user = User(session.username)
+            user = User(session['username'])
             user_node = user.get()
             for rel in graph.match(start_node=user_node, rel_type='in'):
-                if rel.end_node().groupname == groupname:
+                if rel.end_node()['groupname'] == groupname:
                     self.usergroup_node = rel.end_node()
-                    self.id = self.usergroup_node.id
+                    self.id = self.usergroup_node['id']
                     break
             self.groupname = groupname
         elif groupname and not session:
@@ -91,23 +91,34 @@ class Usergroup(object):
         else:
             raise TypeError('Provide groupname or id or both.')
 
+    @property
+    def owners(self):
+        """Return a list of current group owners."""
+        return self.find_users_by_rel('owner')
+
+    @property
+    def members(self):
+        """Return a list of current group members."""
+        return self.find_users_by_rel('member')
+
     @classmethod
     def get_by_id(cls, id):
+        """Return a usergroup_node by id lookup."""
         usergroup_node = graph.find_one('Usergroup',
                                         property_key='id',
                                         property_value=id)
         return usergroup_node
 
-#     def get(self):
-#         """Return a usergroup node for given id."""
-#         usergroup_node = graph.find_one("Usergroup",
-#                                         property_key='id',
-#                                         property_value=self.id)
-#         return usergroup_node
+    def get(self):
+        """Return a usergroup node for given id."""
+        usergroup_node = graph.find_one("Usergroup",
+                                        property_key='id',
+                                        property_value=self.id)
+        return usergroup_node
 
     def register(self, user):
         """Register a user group, inserting a record into the db."""
-        if not self.usergroup_node:
+        if not self.get():
             user_node = user.get()  # transform user object to user node object
             usergroup_node = Node("Usergroup",
                                   groupname=self.groupname,
@@ -118,7 +129,7 @@ class Usergroup(object):
             graph.create(ownership)
             graph.create(membership)
             self.usergroup_node = usergroup_node
-            self.id = usergroup_node.id
+            self.id = usergroup_node['id']
             return usergroup_node
         return False
 
