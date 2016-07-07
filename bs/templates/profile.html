@@ -4,8 +4,8 @@
   <h2>A PROFILE!  HUZZAH!</h2>
   <p>{{ user.username }}'s groups:</p>
   <ul>
-    {% for item in group_list %}
-        <li><a href="{{ url_for('usergroup_profile', id=item.id) }}">{{item.groupname}}</a></li>
+    {% for group in group_list %}
+        <li><a href="{{ url_for('usergroup_profile', id=group.id) }}">{{ group['groupname'] }}</a></li>
     {% endfor %}
   </ul>
 {% endblock %}

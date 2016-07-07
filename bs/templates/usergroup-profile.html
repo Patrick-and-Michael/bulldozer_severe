@@ -14,9 +14,10 @@
         <li><a href="{{ url_for('profile', username=item.username) }}">{{item.username}}</a></li>
     {% endfor %}
   </ul>
-  {% for item in usergroup.find_users_by_rel('owns') %}
-    {% if item.username == session.username %}
-      <form action="{{ url_for('usergroup_add_member')}}" method="post" label="Enter the username of the person you want to add to this group.">
+
+  {% for owner in usergroup.find_users_by_rel('owns') %}
+    {% if owner.username == session.username %}
+      <form action="{{ url_for('usergroup_add_member', id=usergroup.id) }}" method="post" label="Enter the username of the person you want to add to this group.">
         <dl>
           <dt>Username of new member:</dt>
           <dd><input type='text' name='username'></dd>

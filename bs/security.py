@@ -20,6 +20,7 @@ def user_match(user, matchable_class, id, property_name):
         def wrapper(*args, **kwargs):
             property_list = getattr(matchable_class(id), property_name)
             success = user.username in property_list
+            import pdb; pdb.set_trace()
             if success:
                 function()
             else:

@@ -123,13 +123,13 @@ def usergroup_profile(id):
                                usergroup=usergroup, )
 
 
-@app.route('/profile/usergroup/<id>/usergroup_add_member/', methods=['POST'])
 @user_match(session, Usergroup, id, 'owner')
+@app.route('/profile/usergroup/add_member/<id>', methods=['POST'])
 def usergroup_add_member(id):
     """Add a new user to a group."""
     username = request.form['username']
     new_user = User(username)
-    group = Usergroup(id)
+    group = Usergroup(id=id)
     if new_user.get():
         group.add_member(new_user)
         flash("{} is now a member of {}!".format(username, group.groupname))
