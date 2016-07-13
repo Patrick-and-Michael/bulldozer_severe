@@ -170,3 +170,60 @@ class Usergroup(object):
         for r in graph.match(end_node=self.usergroup_node, rel_type=rel):
             userlist.append(User(r.start_node()['username']))
         return userlist
+
+class Quest(object):
+    """Define a Quest model"""
+    def __init__(self, group=None, id=None, session=None, questname=None):
+        """Instantiate a quest object; requires (usergroup object and questname) or id."""
+        self.id = id
+        if id:
+            self.quest_node = Quest.get_by_id(self.id)
+            self.questname = self.quest_node['questname']
+        elif group and questname:
+            group_node = group.get()
+            for rel in graph.match(start_node=group_node, rel_type='has_quest'):
+                if rel.end_node()['questname'] == questname and rel.end_node()['active'] == True:
+                    self.quest_node = rel.end_node()
+                    self.id = self.quest_node['id']
+                    break
+        elif group and not questname:
+            # TODO: get better error
+            raise AttributeError('You must submit a questname with the group object.')
+        else:
+            raise TypeError('Provide quest id or usergroup object and questname or both.')
+        if self.quest_node:
+            self.questname = self.quest_node['questname']
+            self.reward = self.quest_node['reward']
+            self.active = self.quest_node['active']
+            self.creator = self.quest_node['creator']
+
+    def get(self):
+        """Return a usergroup node for given id."""
+        quest_node = graph.find_one("Quest",
+                                        property_key='id',
+                                        property_value=self.id)
+        return usergroup_node
+
+    def register(self, group, user, questname, reward):
+        """Register a new quest - requires the usergroup, user, and reward objects and a questname string."""
+        if not self.get():
+            group_node = group.get()  # transform usergroup object to usergroup node object.
+            user_node = user.get()  # ditto for the creating user.
+            quest_node = Node("Quest",
+                              questname=questname,
+                              id=uuid4().hex),
+                              created=datetime.now(),
+                              reward=reward,
+                              active=True,)
+            graph.create(quest_node)
+            created_by = Relationship(user_node, 'created', quest_node)
+            has_quest = Relationship(group_node, 'has quest', quest_node)
+            graph.create(created_by)
+            graph.create(membership)
+            self.quest_node = quest_node
+            self.id = quest_node['id']
+            self.creator = user
+            self.reward = quest_node['reward']
+            self.questname = quest_node['questname']
+        return self
+
