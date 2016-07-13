@@ -75,7 +75,7 @@ class Usergroup(object):
         self.id = id
         if id:
             self.usergroup_node = Usergroup.get_by_id(self.id)
-            self.groupname = self.usergroup_node['username']
+            self.groupname = self.usergroup_node['groupname']
         elif groupname and session:
             user = User(session['username'])
             user_node = user.get()
