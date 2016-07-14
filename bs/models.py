@@ -196,6 +196,9 @@ class Quest(object):
             self.reward = self.quest_node['reward']
             self.active = self.quest_node['active']
             self.creator = self.quest_node['creator']
+            self.created = self.quest_node['created']
+            self.completed_by = self.quest_node['completed_by']
+            self.approved = self.quest_node['approved']
 
     def get(self):
         """Return a usergroup node for given id."""
@@ -214,7 +217,9 @@ class Quest(object):
                               id=uuid4().hex),
                               created=datetime.now(),
                               reward=reward,
-                              active=True,)
+                              completed_by=None,
+                              active=True,
+                              approved=False,)
             graph.create(quest_node)
             created_by = Relationship(user_node, 'created', quest_node)
             has_quest = Relationship(group_node, 'has_quest', quest_node)
@@ -225,6 +230,8 @@ class Quest(object):
             self.creator = user
             self.reward = quest_node['reward']
             self.questname = quest_node['questname']
+            self.completed_by = quest_node['completed_by']
+            self.approved = quest_node['approved']
         return self
 
     def add_quester(self, user)
@@ -238,5 +245,23 @@ class Quest(object):
         else:
             Relationship(user_node, 'can_complete', self.quest_node)
             return True
+
+    def complete(self, user)
+        """Change the completed_by attribute to match a user object."""
+        user_node = user.get()
+        if graph.match(start_node=user_node, rel_type='can_complete', end_node=self.quest_node):
+            self.completed_by = user
+            self.quest_node['completed_by'] = user
+            self.active = False
+            self.quest_node['active'] = False
+
+    def approve(self)
+        """Approve the completion of a quest."""
+        self.approved = True
+        self.quest_node['approved'] = True
+        self.payout()
+
+    def payout(self)
+        """Pay the quest reward to a completing user."""
 
 
