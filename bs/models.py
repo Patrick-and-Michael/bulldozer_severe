@@ -202,7 +202,7 @@ class Quest(object):
         quest_node = graph.find_one("Quest",
                                         property_key='id',
                                         property_value=self.id)
-        return usergroup_node
+        return quest_node
 
     def register(self, group, user, questname, reward):
         """Register a new quest - requires the usergroup, user, and reward objects and a questname string."""
@@ -217,7 +217,7 @@ class Quest(object):
                               active=True,)
             graph.create(quest_node)
             created_by = Relationship(user_node, 'created', quest_node)
-            has_quest = Relationship(group_node, 'has quest', quest_node)
+            has_quest = Relationship(group_node, 'has_quest', quest_node)
             graph.create(created_by)
             graph.create(membership)
             self.quest_node = quest_node
@@ -226,4 +226,17 @@ class Quest(object):
             self.reward = quest_node['reward']
             self.questname = quest_node['questname']
         return self
+
+    def add_quester(self, user)
+        """Make a user elligible to complete a quest - requires a user object."""
+        user_node = user.get()
+        for rel in graph.match(start_node=user_node, rel_type='can_complete'):
+            if rel.end_node()['id'] == self.id: #check if user is on quest.
+                raise KeyError("user is already on this quest")
+        if user.username == self.creator.username: #check if user is quest creator.
+            raise TypeError("creators are not eligible for their own quests.")
+        else:
+            Relationship(user_node, 'can_complete', self.quest_node)
+            return True
+
 
