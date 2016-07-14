@@ -207,7 +207,7 @@ class Quest(object):
                                         property_value=self.id)
         return quest_node
 
-    def register(self, group, user, questname, reward):
+    def register(self, group, user, questname, virtual_reward):
         """Register a new quest - requires the usergroup, user, and reward objects and a questname string."""
         if not self.get():
             group_node = group.get()  # transform usergroup object to usergroup node object.
@@ -216,7 +216,7 @@ class Quest(object):
                               questname=questname,
                               id=uuid4().hex),
                               created=datetime.now(),
-                              reward=reward,
+                              v_reward=virtual_reward,
                               completed_by=None,
                               active=True,
                               approved=False,)
@@ -224,17 +224,17 @@ class Quest(object):
             created_by = Relationship(user_node, 'created', quest_node)
             has_quest = Relationship(group_node, 'has_quest', quest_node)
             graph.create(created_by)
-            graph.create(membership)
+            graph.create(has_quest)
             self.quest_node = quest_node
             self.id = quest_node['id']
             self.creator = user
-            self.reward = quest_node['reward']
+            self.v_reward = quest_node['v_reward']
             self.questname = quest_node['questname']
             self.completed_by = quest_node['completed_by']
             self.approved = quest_node['approved']
         return self
 
-    def add_quester(self, user)
+    def add_quester(self, user):
         """Make a user elligible to complete a quest - requires a user object."""
         user_node = user.get()
         for rel in graph.match(start_node=user_node, rel_type='can_complete'):
@@ -246,7 +246,7 @@ class Quest(object):
             Relationship(user_node, 'can_complete', self.quest_node)
             return True
 
-    def complete(self, user)
+    def complete(self, user):
         """Change the completed_by attribute to match a user object."""
         user_node = user.get()
         if graph.match(start_node=user_node, rel_type='can_complete', end_node=self.quest_node):
@@ -255,13 +255,24 @@ class Quest(object):
             self.active = False
             self.quest_node['active'] = False
 
-    def approve(self)
+    def approve(self):
         """Approve the completion of a quest."""
         self.approved = True
         self.quest_node['approved'] = True
         self.payout()
 
-    def payout(self)
+    def deny(self):
+        """Deny quest approval, remove completed value and return status to active."""
+        self.quest_node['completed_by'] = None
+        self.completed_by = None
+        self.active = True
+        self.quest_node['active'] = True
+
+    def payout(self):
         """Pay the quest reward to a completing user."""
+        user = self.completed_by
+        user_node = user.get()
+        for key, value in self.v_reward:
+            user_node[key] += value
 
 
