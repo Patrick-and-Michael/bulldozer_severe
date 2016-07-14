@@ -178,7 +178,6 @@ class Quest(object):
         self.id = id
         if id:
             self.quest_node = Quest.get_by_id(self.id)
-            self.questname = self.quest_node['questname']
         elif group and questname:
             group_node = group.get()
             for rel in graph.match(start_node=group_node, rel_type='has_quest'):
@@ -194,11 +193,14 @@ class Quest(object):
         if self.quest_node:
             self.questname = self.quest_node['questname']
             self.reward = self.quest_node['reward']
+            self.v_reward = self.quest_node['v_reward']
             self.active = self.quest_node['active']
             self.creator = self.quest_node['creator']
             self.created = self.quest_node['created']
             self.completed_by = self.quest_node['completed_by']
             self.approved = self.quest_node['approved']
+            self.description = self.quest_node['description']
+
 
     def get(self):
         """Return a usergroup node for given id."""
@@ -217,9 +219,11 @@ class Quest(object):
                               id=uuid4().hex),
                               created=datetime.now(),
                               v_reward=virtual_reward,
+                              reward=none,
                               completed_by=None,
                               active=True,
-                              approved=False,)
+                              approved=False,
+                              description=None,)
             graph.create(quest_node)
             created_by = Relationship(user_node, 'created', quest_node)
             has_quest = Relationship(group_node, 'has_quest', quest_node)
@@ -232,6 +236,8 @@ class Quest(object):
             self.questname = quest_node['questname']
             self.completed_by = quest_node['completed_by']
             self.approved = quest_node['approved']
+            self.reward = quest_node['reward']
+            self.description = quest_node['description']
         return self
 
     def add_quester(self, user):
@@ -274,5 +280,16 @@ class Quest(object):
         user_node = user.get()
         for key, value in self.v_reward:
             user_node[key] += value
+
+    def add_description(self, description):
+        """Add a description attribute to a quest node."""
+        self.quest_node['description'] = description
+        self.description = description
+
+    def add_reward(self, reward):
+        """Update a reward attribute on a node with a string describing a real reward."""
+        self.quest_node['reward'] = reward
+        self.reward = reward
+
 
 
