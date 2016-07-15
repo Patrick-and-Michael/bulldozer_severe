@@ -38,7 +38,10 @@ class User(object):
             user_node = Node("User",
                              username=self.username,
                              id=uuid4().hex,
-                             password=bcrypt.encrypt(password))
+                             password=bcrypt.encrypt(password),
+                             level=1,
+                             xp=0,
+                             gold=0,)
             graph.create(user_node)
             return True
         return False
@@ -171,8 +174,10 @@ class Usergroup(object):
             userlist.append(User(r.start_node()['username']))
         return userlist
 
+
 class Quest(object):
-    """Define a Quest model"""
+    """Define a Quest model."""
+
     def __init__(self, group=None, id=None, session=None, questname=None):
         """Instantiate a quest object; requires (usergroup object and questname) or id."""
         self.id = id
@@ -201,12 +206,11 @@ class Quest(object):
             self.approved = self.quest_node['approved']
             self.description = self.quest_node['description']
 
-
     def get(self):
         """Return a usergroup node for given id."""
         quest_node = graph.find_one("Quest",
-                                        property_key='id',
-                                        property_value=self.id)
+                                    property_key='id',
+                                    property_value=self.id)
         return quest_node
 
     def register(self, group, user, questname, virtual_reward):
@@ -216,7 +220,7 @@ class Quest(object):
             user_node = user.get()  # ditto for the creating user.
             quest_node = Node("Quest",
                               questname=questname,
-                              id=uuid4().hex),
+                              id=uuid4().hex,
                               created=datetime.now(),
                               v_reward=virtual_reward,
                               reward=none,
@@ -244,9 +248,9 @@ class Quest(object):
         """Make a user elligible to complete a quest - requires a user object."""
         user_node = user.get()
         for rel in graph.match(start_node=user_node, rel_type='can_complete'):
-            if rel.end_node()['id'] == self.id: #check if user is on quest.
+            if rel.end_node()['id'] == self.id:  # check if user is on quest.
                 raise KeyError("user is already on this quest")
-        if user.username == self.creator.username: #check if user is quest creator.
+        if user.username == self.creator.username:  # check if user is quest creator.
             raise TypeError("creators are not eligible for their own quests.")
         else:
             Relationship(user_node, 'can_complete', self.quest_node)
@@ -255,7 +259,9 @@ class Quest(object):
     def complete(self, user):
         """Change the completed_by attribute to match a user object."""
         user_node = user.get()
-        if graph.match(start_node=user_node, rel_type='can_complete', end_node=self.quest_node):
+        if graph.match(start_node=user_node,
+                       rel_type='can_complete',
+                       end_node=self.quest_node):
             self.completed_by = user
             self.quest_node['completed_by'] = user
             self.active = False
@@ -268,7 +274,7 @@ class Quest(object):
         self.payout()
 
     def deny(self):
-        """Deny quest approval, remove completed value and return status to active."""
+        """Deny quest approval, remove completed value and return to active."""
         self.quest_node['completed_by'] = None
         self.completed_by = None
         self.active = True
@@ -290,6 +296,3 @@ class Quest(object):
         """Update a reward attribute on a node with a string describing a real reward."""
         self.quest_node['reward'] = reward
         self.reward = reward
-
-
-
