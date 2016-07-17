@@ -43,15 +43,14 @@ class User(object):
                              xp=0,
                              gold=0,)
             graph.create(user_node)
-            return True
-        return False
+        return self
 
     def get_by_id(self):
         """Look up node by ID and return the node."""
-        usergroup_node = graph.find_one("User",
-                                        property_key="id",
-                                        property_value=self.id)
-        return usergroup_node
+        user_node = graph.find_one("User",
+                                   property_key="id",
+                                   property_value=self.id)
+        return user_node
 
     def verify_password(self, password):
         """Validate the user's password, return false if validation fail."""
@@ -134,7 +133,7 @@ class Usergroup(object):
             self.usergroup_node = usergroup_node
             self.id = usergroup_node['id']
             return usergroup_node
-        return False
+        return self
 
 #     def get_by_id(self):
 #         usergroup_node = graph.find_one("Usergroup",
