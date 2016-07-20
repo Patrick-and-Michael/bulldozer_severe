@@ -194,7 +194,7 @@ class Quest(object):
             raise AttributeError('You must submit a questname with the group object.')
         else:
             raise TypeError('Provide quest id or usergroup object and questname or both.')
-        if self.quest_node:
+        try:
             self.questname = self.quest_node['questname']
             self.reward = self.quest_node['reward']
             self.v_reward = self.quest_node['v_reward']
@@ -204,6 +204,8 @@ class Quest(object):
             self.completed_by = self.quest_node['completed_by']
             self.approved = self.quest_node['approved']
             self.description = self.quest_node['description']
+        except(AttributeError):
+            pass
 
     def get(self):
         """Return a usergroup node for given id."""
@@ -217,12 +219,13 @@ class Quest(object):
         if not self.get():
             group_node = group.get()  # transform usergroup object to usergroup node object.
             user_node = user.get()  # ditto for the creating user.
+            time = datetime.now()
+            timestring = time.strftime("%d%m%Y %H:%M:%S")
             quest_node = Node("Quest",
                               questname=questname,
                               id=uuid4().hex,
-                              created=datetime.now(),
-                              v_reward=virtual_reward,
-                              reward=none,
+                              created=timestring,
+                              reward=None,
                               completed_by=None,
                               active=True,
                               approved=False,
@@ -232,10 +235,19 @@ class Quest(object):
             has_quest = Relationship(group_node, 'has_quest', quest_node)
             graph.create(created_by)
             graph.create(has_quest)
+            for key, value in virtual_reward.items():
+                reward_node = Node("Reward",
+                                   key,
+                                   id=uuid4().hex,
+                                   type=key,
+                                   amount=value,)
+                graph.create(reward_node)
+                pays = Relationship(quest_node, 'pays', reward_node)
+                graph.create(pays)
             self.quest_node = quest_node
             self.id = quest_node['id']
             self.creator = user
-            self.v_reward = quest_node['v_reward']
+            self.v_reward = [(property['type'], property['value']) for property in rel.end_node for rel in self.graph.match(start_node=self.quest_node, rel_type='pays')]
             self.questname = quest_node['questname']
             self.completed_by = quest_node['completed_by']
             self.approved = quest_node['approved']
