@@ -247,7 +247,10 @@ class Quest(object):
             self.quest_node = quest_node
             self.id = quest_node['id']
             self.creator = user
-            self.v_reward = [(property['type'], property['value']) for property in rel.end_node for rel in self.graph.match(start_node=self.quest_node, rel_type='pays')]
+            edges = self.graph.match(start_node=self.quest_node,
+                                     rel_type='pays')
+            self.v_reward = [(p['type'],
+                              p['value']) for e in edges for p in e.end_node]
             self.questname = quest_node['questname']
             self.completed_by = quest_node['completed_by']
             self.approved = quest_node['approved']
