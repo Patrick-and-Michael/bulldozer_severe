@@ -142,7 +142,7 @@ class Usergroup(object):
 #         return usergroup_node
 
     def add_member(self, user):
-        """Add a 'in' relationship between a usergoup and a user."""
+        """Add an 'in' relationship between a usergoup and a user."""
         user_in = user.get_groups()
         for group in user_in:
             if self.usergroup_node == group.usergroup_node:
@@ -178,22 +178,28 @@ class Quest(object):
     """Define a Quest model."""
 
     def __init__(self, group=None, id=None, session=None, questname=None):
-        """Instantiate a quest object; requires (usergroup object and questname) or id."""
+        """Instantiate a quest object.
+
+        Requires (usergroup object and questname) or id."""
         self.id = id
         if id:
             self.quest_node = Quest.get_by_id(self.id)
         elif group and questname:
             group_node = group.get()
-            for rel in graph.match(start_node=group_node, rel_type='has_quest'):
-                if rel.end_node()['questname'] == questname and rel.end_node()['active'] == True:
+            for rel in graph.match(start_node=group_node,
+                                   rel_type='has_quest'):
+                if rel.end_node()['questname'] == questname and \
+                   rel.end_node()['active']:
                     self.quest_node = rel.end_node()
                     self.id = self.quest_node['id']
                     break
         elif group and not questname:
             # TODO: get better error
-            raise AttributeError('You must submit a questname with the group object.')
+            raise AttributeError('You must submit a questname with the group '
+                                 'object.')
         else:
-            raise TypeError('Provide quest id or usergroup object and questname or both.')
+            raise TypeError('Provide quest id or usergroup object and '
+                            'questname or both.')
         try:
             self.questname = self.quest_node['questname']
             self.reward = self.quest_node['reward']
@@ -215,10 +221,13 @@ class Quest(object):
         return quest_node
 
     def register(self, group, user, questname, virtual_reward):
-        """Register a new quest - requires the usergroup, user, and reward objects and a questname string."""
+        """Register a new quest.
+
+        Requires the usergroup, user, and reward objects and a questname
+        string."""
         if not self.get():
-            group_node = group.get()  # transform usergroup object to usergroup node object.
-            user_node = user.get()  # ditto for the creating user.
+            group_node = group.get()  # get node from object
+            user_node = user.get()  # ditto
             time = datetime.now()
             timestring = time.strftime("%d%m%Y %H:%M:%S")
             quest_node = Node("Quest",
@@ -259,15 +268,17 @@ class Quest(object):
         return self
 
     def add_quester(self, user):
-        """Make a user elligible to complete a quest - requires a user object."""
+        """Make a user eligible to complete a quest."""
         user_node = user.get()
         for rel in graph.match(start_node=user_node, rel_type='can_complete'):
-            if rel.end_node()['id'] == self.id:  # check if user is on quest.
+            if rel.end_node()['id'] == self.id:
                 raise KeyError("user is already on this quest")
-        if user.username == self.creator.username:  # check if user is quest creator.
+        if user == self.creator:
             raise TypeError("creators are not eligible for their own quests.")
         else:
-            Relationship(user_node, 'can_complete', self.quest_node)
+            graph.create(Relationship(user_node,
+                                      'can_complete',
+                                      self.quest_node))
             return True
 
     def complete(self, user):
@@ -307,6 +318,6 @@ class Quest(object):
         self.description = description
 
     def add_reward(self, reward):
-        """Update a reward attribute on a node with a string describing a real reward."""
+        """Update a reward attribute to a string describing a real reward."""
         self.quest_node['reward'] = reward
         self.reward = reward
