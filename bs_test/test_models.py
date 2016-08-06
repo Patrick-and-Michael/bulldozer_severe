@@ -1,6 +1,11 @@
-"""Let's learn to test with neo4j!  Maybe."""
+"""Let's learn to test with neo4j!  Maybe.
+
+~$ python -m bs_test.test_models
+
+"""
+
 from bs.models import graph, url, password, Quest, User, Usergroup, username
-from py2neo import Graph, Relationship, authenticate
+from py2neo import Graph, Relationship, authenticate, Node
 import unittest
 
 if username and password:
@@ -8,6 +13,7 @@ if username and password:
 
 
 class TestModelMethods(unittest.TestCase):
+
     def setUp(self):
         self.graph = graph
 
@@ -25,6 +31,18 @@ class TestModelMethods(unittest.TestCase):
             node = obj.get()
             node.add_label('Test')
             self.graph.push(node)
+
+        q = Quest(group=self.usergroup1, questname='newquest')
+        self.quest1 = q.register(self.usergroup1,
+                                 self.user1,
+                                 'quest1',
+                                 {'xp': 100, 'gold': 100})
+        self.quest1.quest_node.add_label('Test')
+        self.graph.push(self.quest1.quest_node)
+        for rel in graph.match(start_node=self.quest1.quest_node,
+                               rel_type='pays'):
+            rel.end_node().add_label('Test')
+            self.graph.push(rel.end_node())
 
     def tearDown(self):
         """Delete all 'test' nodes."""
@@ -47,7 +65,7 @@ class TestModelMethods(unittest.TestCase):
         self.usergroup1.add_member(self.user2)
         check_list = [member.username for member in self.usergroup1.find_users_by_rel('in')]
         self.assertIn(self.user2.username, check_list)
- 
+
     def test_add_owner_to_group(self):
         """Add user2 to usergroup1 and check that membership is updated."""
         self.usergroup1.add_owner(self.user2)
@@ -62,15 +80,33 @@ class TestModelMethods(unittest.TestCase):
 
     def test_add_quest(self):
         """Add a new quest to a usergroup."""
-        self.newquest = Quest(group=self.usergroup1, questname='newquest').register(self.usergroup1, self.user1, 'newquest', {'xp': 100, 'gold': 100})
-        self.newquest.quest_node.add_label('Test')
-        for rel in graph.match(start_node=self.newquest.quest_node, rel_type='pays'):
-            rel.end_node.add_label('Test')
+        quest = Quest(group=self.usergroup1, questname='newquest')
+        self.newquest = quest.register(self.usergroup1,
+                                       self.user1,
+                                       'newquest',
+                                       {'xp': 100, 'gold': 100})
+        quest_node = self.newquest.quest_node
+        quest_node.add_label('Test')
+        self.graph.push(quest_node)
+        for rel in graph.match(start_node=quest_node, rel_type='pays'):
+            rel.end_node().add_label('Test')
+            self.graph.push(rel.end_node())
+
         self.assertEqual(self.newquest.creator, self.user1)
-        self.assertIn(('gold', 100), self.newquest.v_reward)
+        self.assertEqual(self.newquest.v_reward['gold'], 100)
 
+    def test_quest_get(self):
+        from_db = self.graph.find_one("Quest",
+                                      property_key="id",
+                                      property_value=self.quest1.id)
+        self.assertEqual(self.quest1.get(), from_db)
 
-print('this worked')
+    def test_add_quester(self):
+        self.quest1.add_quester(self.user2)
+        rel = graph.match_one(self.user2.get(),
+                              'can_complete',
+                              self.quest1.get())
+        self.assertIsNotNone(rel)
 
 if __name__ == '__main__':
     unittest.main()

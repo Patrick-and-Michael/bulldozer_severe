@@ -181,9 +181,25 @@ class Quest(object):
         """Instantiate a quest object.
 
         Requires (usergroup object and questname) or id."""
+        self.v_reward = {}
+
         self.id = id
         if id:
             self.quest_node = Quest.get_by_id(self.id)
+
+            # TODO: don't repeat yourself
+            # copy over all properties from node to object
+            for k, v in dict(self.quest_node):
+                setattr(self, k, v)
+
+            # populate the .v_reward attribute
+            edges = graph.match(start_node=self.quest_node,
+                                rel_type='pays')
+            for e in edges:
+                reward_node = e.end_node()
+                properties = dict(reward_node)
+                self.v_reward[properties['type']] = properties['amount']
+
         elif group and questname:
             group_node = group.get()
             for rel in graph.match(start_node=group_node,
@@ -192,7 +208,21 @@ class Quest(object):
                    rel.end_node()['active']:
                     self.quest_node = rel.end_node()
                     self.id = self.quest_node['id']
+
+                    # TODO: don't repeat yourself
+                    # copy over all properties from node to object
+                    for k, v in dict(self.quest_node).items():
+                        setattr(self, k, v)
+
+                    # populate the .v_reward attribute
+                    edges = graph.match(start_node=self.quest_node,
+                                        rel_type='pays')
+                    for e in edges:
+                        reward_node = e.end_node()
+                        properties = dict(reward_node)
+                        self.v_reward[properties['type']] = properties['amount']
                     break
+
         elif group and not questname:
             # TODO: get better error
             raise AttributeError('You must submit a questname with the group '
@@ -200,21 +230,9 @@ class Quest(object):
         else:
             raise TypeError('Provide quest id or usergroup object and '
                             'questname or both.')
-        try:
-            self.questname = self.quest_node['questname']
-            self.reward = self.quest_node['reward']
-            self.v_reward = self.quest_node['v_reward']
-            self.active = self.quest_node['active']
-            self.creator = self.quest_node['creator']
-            self.created = self.quest_node['created']
-            self.completed_by = self.quest_node['completed_by']
-            self.approved = self.quest_node['approved']
-            self.description = self.quest_node['description']
-        except(AttributeError):
-            pass
 
     def get(self):
-        """Return a usergroup node for given id."""
+        """Return quest node."""
         quest_node = graph.find_one("Quest",
                                     property_key='id',
                                     property_value=self.id)
@@ -256,15 +274,19 @@ class Quest(object):
             self.quest_node = quest_node
             self.id = quest_node['id']
             self.creator = user
-            edges = self.graph.match(start_node=self.quest_node,
-                                     rel_type='pays')
-            self.v_reward = [(p['type'],
-                              p['value']) for e in edges for p in e.end_node]
-            self.questname = quest_node['questname']
-            self.completed_by = quest_node['completed_by']
-            self.approved = quest_node['approved']
-            self.reward = quest_node['reward']
-            self.description = quest_node['description']
+
+            # TODO: don't repeat yourself
+            # populate the .v_reward attribute
+            edges = graph.match(start_node=self.quest_node,
+                                rel_type='pays')
+            for e in edges:
+                reward_node = e.end_node()
+                properties = dict(reward_node)
+                self.v_reward[properties['type']] = properties['amount']
+
+            # copy over all properties from node to object
+            for k, v in dict(quest_node).items():
+                setattr(self, k, v)
         return self
 
     def add_quester(self, user):
