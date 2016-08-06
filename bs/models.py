@@ -252,11 +252,11 @@ class Quest(object):
                               questname=questname,
                               id=uuid4().hex,
                               created=timestring,
-                              reward=None,
-                              completed_by=None,
+                              reward='',
+                              completed_by='',
                               active=True,
                               approved=False,
-                              description=None,)
+                              description='',)
             graph.create(quest_node)
             created_by = Relationship(user_node, 'created', quest_node)
             has_quest = Relationship(group_node, 'has_quest', quest_node)
@@ -297,6 +297,8 @@ class Quest(object):
                 raise KeyError("user is already on this quest")
         if user == self.creator:
             raise TypeError("creators are not eligible for their own quests.")
+        if not self.active:
+            raise AttributeError("Quest not active.")
         else:
             graph.create(Relationship(user_node,
                                       'can_complete',
@@ -306,26 +308,32 @@ class Quest(object):
     def complete(self, user):
         """Change the completed_by attribute to match a user object."""
         user_node = user.get()
-        if graph.match(start_node=user_node,
-                       rel_type='can_complete',
-                       end_node=self.quest_node):
+        # NOTE: throws attr error on match failure
+        if graph.match_one(start_node=user_node,
+                           rel_type='can_complete',
+                           end_node=self.quest_node).end_node():
             self.completed_by = user
-            self.quest_node['completed_by'] = user
             self.active = False
+            self.quest_node['completed_by'] = user.username
             self.quest_node['active'] = False
+            graph.push(self.quest_node)
+        else:
+            raise ValueError("User cannot complete quest.")
 
     def approve(self):
         """Approve the completion of a quest."""
         self.approved = True
         self.quest_node['approved'] = True
+        graph.push(self.quest_node)
         self.payout()
 
     def deny(self):
         """Deny quest approval, remove completed value and return to active."""
-        self.quest_node['completed_by'] = None
+        self.quest_node['completed_by'] = ''
         self.completed_by = None
         self.active = True
         self.quest_node['active'] = True
+        graph.push(self.quest_node)
 
     def payout(self):
         """Pay the quest reward to a completing user."""
@@ -333,13 +341,16 @@ class Quest(object):
         user_node = user.get()
         for key, value in self.v_reward:
             user_node[key] += value
+        graph.push(user_node)
 
     def add_description(self, description):
         """Add a description attribute to a quest node."""
         self.quest_node['description'] = description
         self.description = description
+        graph.push(self.quest_node)
 
     def add_reward(self, reward):
         """Update a reward attribute to a string describing a real reward."""
         self.quest_node['reward'] = reward
         self.reward = reward
+        graph.push(self.quest_node)

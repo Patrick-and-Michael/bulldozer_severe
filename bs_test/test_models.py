@@ -108,5 +108,22 @@ class TestModelMethods(unittest.TestCase):
                               self.quest1.get())
         self.assertIsNotNone(rel)
 
+    def test_complete_quest(self):
+        self.quest1.add_quester(self.user2)
+        self.quest1.complete(self.user2)
+        from_db = self.graph.find_one("Quest",
+                                      property_key="id",
+                                      property_value=self.quest1.id)
+        self.assertEqual(from_db['active'], False)
+        self.assertEqual(from_db['completed_by'], self.user2.username)
+
+    def test_complete_quest_negative(self):
+        with self.assertRaises(ValueError):
+            self.quest1.complete(self.user2)
+
+        # self.assertRaises(ValueError, self.quest1.complete, self.user2)
+
+
+
 if __name__ == '__main__':
     unittest.main()
